@@ -1,0 +1,29 @@
+{
+  "name": "trpc",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "packageManager": "yarn@3.2.2",
+  "scripts": {
+    "start": "nodemon src/server.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.1.0",
+    "@trpc/server": "^9.26.2",
+    "express": "^4.18.1",
+    "jsonwebtoken": "^8.5.1",
+    "zod": "^3.17.10"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/jsonwebtoken": "^8.5.8",
+    "@types/node": "^18.0.6",
+    "@typescript-eslint/eslint-plugin": "^5.30.7",
+    "@typescript-eslint/parser": "^5.30.7",
+    "eslint": "^8.20.0",
+    "nodemon": "^2.0.19",
+    "prisma": "^4.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.7.4"
+  }
+}

@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"skipDefaultLibCheck": true,
+		"strict": true,
+		"sourceMap": true,
+		"resolveJsonModule": true,
+		"removeComments": true,
+
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"alwaysStrict": true,
+
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noUncheckedIndexedAccess": false,
+		"noUnusedLocals": true,
+
+		"importsNotUsedAsValues": "error"
+	},
+	"exclude": ["./node_modules", "./dist", "./build"],
+	"include": ["**/*.ts", "**/*.tsx"],
+	"watchOptions": {
+		"excludeDirectories": ["./**/node_modules"]
+	}
+}
