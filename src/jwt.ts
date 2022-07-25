@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { JsonWebTokenError } from 'jsonwebtoken'
 import type { Role, User } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 
@@ -12,8 +12,8 @@ export function createToken(user: User): string {
     const payload: Token = {
         name: user.name,
         role: user.role,
-        // Token expires in 1 minute
-        exp: Math.floor(Date.now() / 1000) + (60),
+        // Token expires in 5 minute
+        exp: (Math.floor(Date.now() / 1000) + 60 * 5),
     }
 
     const token = jwt.sign(payload, 'secret')
@@ -23,11 +23,11 @@ export function createToken(user: User): string {
 
 export function verifyToken(token: string): TRPCError | Token {
     try {
-        const decoded = jwt.verify(token, 'secret') as Token
-
-        return decoded
+        return jwt.verify(token, 'secret') as Token
     } catch (error) {
-        if (error instanceof Error) {
+        console.log(error)
+        console.log(token)
+        if (error instanceof JsonWebTokenError) {
             return new TRPCError({
                 code: 'UNAUTHORIZED',
                 message: error.message,
@@ -35,7 +35,7 @@ export function verifyToken(token: string): TRPCError | Token {
         }
 
         return new TRPCError({
-            code: 'BAD_REQUEST',
+            code: 'INTERNAL_SERVER_ERROR',
             message: 'Unkown error',
         })
     }

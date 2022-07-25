@@ -1,3 +1,4 @@
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
@@ -6,14 +7,14 @@ import type { Context } from '../server'
 
 export const authRouter = trpc.
     router<Context>()
-    .query('login', {
+    .mutation('login', {
         input: z.object({
             name: z.string(),
             password: z.string() 
         }),
         output: z.string(),
         async resolve({ ctx, input }) {
-            const user = await ctx.prisma.user.findFirst({
+            const user = await ctx.prisma.user.findUnique({
                 where: {
                     name: input.name,
                 }
@@ -21,14 +22,14 @@ export const authRouter = trpc.
 
             if (!user) {
                 throw new TRPCError({
-                    code: 'UNAUTHORIZED',
+                    code: 'BAD_REQUEST',
                     message: 'User not found',
                 })
             }
 
             if (user.password !== input.password) {
                 throw new TRPCError({
-                    code: 'UNAUTHORIZED',
+                    code: 'BAD_REQUEST',
                     message: 'Wrong password',
                 })
             }
@@ -44,15 +45,29 @@ export const authRouter = trpc.
         }),
         output: z.string(),
         async resolve({ ctx, input }) {
-            const user = await ctx.prisma.user.create({
-                data: {
-                    name: input.name,
-                    email: input.email,
-                    // TODO: hash password
-                    password: input.password,
+            try {
+                const user = await ctx.prisma.user.create({
+                    data: {
+                        name: input.name,
+                        email: input.email,
+                        // TODO: hash password
+                        password: input.password,
+                    }
+                })
+                
+                return createToken(user) 
+            } catch (error) {
+                if (error instanceof PrismaClientKnownRequestError) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'User already exists',
+                    })
                 }
-            })
 
-            return createToken(user) 
+                throw new trpc.TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Unkown error',
+                }) 
+            }
         }
     })

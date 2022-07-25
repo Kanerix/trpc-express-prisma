@@ -23,8 +23,7 @@ export const adminRouter = trpc.
             })
         }
 
-        const tokenWithoutBearer = token.slice(8)
-        console.log(tokenWithoutBearer)
+        const tokenWithoutBearer = token.slice(7)
         const decoded = verifyToken(tokenWithoutBearer) 
 
         if (decoded instanceof trpc.TRPCError) {
@@ -60,13 +59,6 @@ export const adminRouter = trpc.
                 throw new trpc.TRPCError({
                     code: 'BAD_REQUEST',
                     message: 'User not found',
-                })
-            }
-
-            if (user.role === Role.ADMIN) {
-                throw new trpc.TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: 'User already is admin',
                 })
             }
 
