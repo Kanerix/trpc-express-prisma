@@ -20,4 +20,16 @@ model User {
     role        Role     @default(USER)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @default(now())
+    posts       Post[]
+}
+
+model Post {
+    id          Int       @id @default(autoincrement())
+    title       String    @unique
+    content     String
+    author      User      @relation(fields: [authorId], references: [id])
+    authorId    String   
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @default(now())
+    deletedAt   DateTime?
 }

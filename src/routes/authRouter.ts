@@ -9,8 +9,8 @@ export const authRouter = trpc.
     router<Context>()
     .mutation('login', {
         input: z.object({
-            name: z.string(),
-            password: z.string() 
+            name: z.string().min(3).max(16),
+            password: z.string().min(6).max(64) 
         }),
         output: z.string(),
         async resolve({ ctx, input }) {
@@ -39,9 +39,9 @@ export const authRouter = trpc.
     })
     .mutation('register', {
         input: z.object({
-            name: z.string(),
+            name: z.string().min(3).max(16),
             email: z.string(),
-            password: z.string()
+            password: z.string().min(6).max(64)
         }),
         output: z.string(),
         async resolve({ ctx, input }) {

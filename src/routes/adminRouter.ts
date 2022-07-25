@@ -1,46 +1,31 @@
 import { Role } from '@prisma/client'
 import * as trpc from '@trpc/server'
 import { z } from 'zod'
-import { verifyToken } from '../jwt'
 import type { Context } from '../server'
 
 export const adminRouter = trpc.
     router<Context>()
     .middleware(async ({ ctx, next }) => {
-        const token = ctx.req.headers.authorization
-
-        if (!token) {
+        if (!ctx.user) {
             throw new trpc.TRPCError({
                 code: 'UNAUTHORIZED',
-                message: 'No token provided',
+                message: 'You must be logged in to access this resource', 
             })
         }
 
-        if (!token.startsWith('Bearer ')) {
+        if (ctx.user.role !== Role.ADMIN) {
             throw new trpc.TRPCError({
                 code: 'UNAUTHORIZED',
-                message: 'Invalid token prefix',
-            })
-        }
-
-        const tokenWithoutBearer = token.slice(7)
-        const decoded = verifyToken(tokenWithoutBearer) 
-
-        if (decoded instanceof trpc.TRPCError) {
-            throw decoded
-        }
-
-        if (decoded.role !== Role.ADMIN) {
-            throw new trpc.TRPCError({
-                code: 'UNAUTHORIZED',
-                message: 'User is not an admin',
+                message: 'You must be an admin to access this resource',
             })
         }
 
         return next()
     })
     .mutation('promote', {
-        input: z.string(),
+        input: z.object({
+            name: z.string().min(3).max(16),
+        }),
         output: z.object({
             name: z.string(),
             role: z.string()
@@ -48,7 +33,7 @@ export const adminRouter = trpc.
         async resolve({ ctx, input }) {
             const user = await ctx.prisma.user.update({
                 where: {
-                    name: input,
+                    name: input.name,
                 },
                 data: {
                     role: Role.ADMIN,
@@ -66,7 +51,9 @@ export const adminRouter = trpc.
         }
     })
     .mutation('demote', {
-        input: z.string(),
+        input: z.object({
+            name: z.string().min(3).max(16),
+        }),
         output: z.object({
             name: z.string(),
             role: z.string()
@@ -74,7 +61,7 @@ export const adminRouter = trpc.
         async resolve({ ctx, input }) {
             const user = await ctx.prisma.user.update({
                 where: {
-                    name: input,
+                    name: input.name,
                 },
                 data: {
                     role: Role.USER,
@@ -96,12 +83,5 @@ export const adminRouter = trpc.
             }
             
             return { name: user.name, role: user.role }
-        }
-    })
-    .mutation('delete', {
-        input: z.string(),
-        output: z.void(),
-        resolve() {
-            return 
         }
     })
