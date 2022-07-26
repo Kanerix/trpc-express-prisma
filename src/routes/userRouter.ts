@@ -6,23 +6,13 @@ import type { Context } from '../server'
 
 export const userRouter = trpc
     .router<Context>()
-    .middleware(async ({ ctx, next }) => {
-        if (!ctx.user) {
-            throw new TRPCError({
-                code: 'UNAUTHORIZED',
-                message: 'You must be logged in to access this resource', 
-            })
-        }
-        
-        return next()
-    })
     .query('posts', {
         input: z.void(),
         output: z.array(
             z.object({
                 id: z.number(),
-                title: z.string(),
-                content: z.string(),
+                title: z.string().max(128),
+                content: z.string().max(1024),
                 author: z.object({
                     id: z.string(),
                     name: z.string(),
@@ -31,6 +21,9 @@ export const userRouter = trpc
         ),
         async resolve({ ctx }) {
             return await ctx.prisma.post.findMany({
+                where: {
+                    deletedAt: null,
+                },
                 select: {
                     id: true,
                     title: true,
@@ -46,7 +39,6 @@ export const userRouter = trpc
         }
     })
     .mutation('createPost', {
-        meta: { role: Role.USER },
         input: z.object({
             title: z.string().max(128),
             content: z.string().max(1024),
@@ -88,34 +80,73 @@ export const userRouter = trpc
         input: z.object({
             id: z.number(),
         }),
-        output: z.void(),
+        output: z.object({
+            id: z.number(),
+            title: z.string().max(128),
+            content: z.string().max(1024),
+            deletedAt: z.date().nullable(),
+            author: z.object({
+                id: z.string(),
+                name: z.string().max(16),
+            })
+        }),
         async resolve({ ctx, input }) {
-            try {
-                if (!ctx.user) {
-                    throw new TRPCError({
-                        code: 'UNAUTHORIZED',
-                        message: 'You must be logged in to access this resource',
-                    })
-                }
-
-                ctx.prisma.post.updateMany({
-                    where: {
-                        id: input.id,
-                        author: {
-                            id: ctx.user.id,
-                        }
-                    },
-                    data: {
-                        deletedAt: new Date(),
-                    }
+            if (!ctx.user) {
+                throw new TRPCError({
+                    code: 'UNAUTHORIZED',
+                    message: 'You must be logged in to access this resource',
                 })
-            } catch (e) {
-                console.log(e)
             }
 
-            throw new TRPCError({
-                code: 'INTERNAL_SERVER_ERROR',
-                message: 'Unkown error',
+            const post = await ctx.prisma.post.findUnique({
+                where: {
+                    id: input.id,
+                }
             })
+
+            if (!post) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Post not found',
+                })
+            }
+
+            if (post.authorId !== ctx.user.id) {
+                throw new TRPCError({
+                    code: 'UNAUTHORIZED',
+                    message: 'You must be the author to delete this post',
+                })
+            }
+
+            try {
+                const updatedPost = await ctx.prisma.post.update({
+                    where: {
+                        id: post.id,
+                    },
+                    data: {
+                        deletedAt: new Date()
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        content: true,
+                        deletedAt: true,
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        }
+                    }
+                })
+
+                return updatedPost
+            } catch (error) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Could not delete post',
+                })
+            }
+
         }
     })
